@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>pic</title>
+</head>
+<style>
+  .container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  input {
+    padding-bottom: 10px;
+  }
+
+  #canvas-container {
+    display: flex;
+    width: 100%;
+    flex: 1;
+    gap: 10px;
+  }
+
+  #before-convert { 
+    width: 50%;
+  }
+  #after-convert {
+    flex: 1;
+  }
+</style>
+<body>
+  <div class="container">
+    <input type="file" accept=".jpeg,.jpg,.png">
+    <div id="canvas-container">
+      <canvas id="before-convert"></canvas>
+      <canvas id="after-convert"></canvas>
+    </div>
+  </div>
+    
+</body>
+
+<script>
+  document.querySelector("input[type=file]").addEventListener("change",uploadImage, false);
+
+  let width = 32 * 3; // 宽多少个点
+  let height = 32 * 3; // 高多少个点
+  let size = 5; // 隔过少个点取一个色值
+
+  function uploadImage(e) {
+    let file = e.target.files[0];
+    if(!file) return;
+    console.log(file);
+    let fileReader = new FileReader();
+    fileReader.readAsDataURL(file);
+    fileReader.onload = () => {
+      createImage(fileReader);
+      e.target.value = '';
+    }
+  }
+
+  function createImage(obj) {
+    console.log(obj)
+    let img = new Image();
+    img.src = obj.result;
+    img.onload = () => {
+      drawImage(img);
+    }
+  }
+
+  function drawImage(img) {
+    let canvas = document.getElementById('before-convert') 
+    let ctx = canvas.getContext("2d");
+    canvas.width = ctx.width = width * size;
+    canvas.height = ctx.height = height * size;
+    canvas.className = 'before-convert'
+    let w = img.width, h = img.height;
+    let v = w / h;
+    if (v > 1) {
+      w = width;
+      h = w / v;
+    } else {
+      h = height;
+      w = h * v;
+    }
+    ctx.drawImage(
+      img,
+        ((width - w) / 2) * size,
+        ((height - h) / 2) * size,
+      w * size,
+      h * size
+    );
+    let pxMap = createPxMap(ctx);
+    drawPXCanvas(pxMap)
+  }
+
+  function createPxMap(ctx){
+    let pxMap = [];
+    for (let i = 0; i < width * size; i += size) {
+      for (let j = 0; j < height * size; j += size) {
+        let pixel = ctx.getImageData(i, j, 1, 1).data;
+        let color = `rgba(${pixel[0]},${pixel[1]},${pixel[2]},${pixel[3]/255})`;
+        pxMap.push({ x: i / size, y: j / size, color });
+        }
+    }
+   return pxMap;
+  }
+
+
+  function drawPXCanvas(pxMap) {
+    let canvas = document.getElementById('after-convert') 
+    let ctx = canvas.getContext("2d");
+    canvas.width = ctx.width = width * size;
+    canvas.height = ctx.height = height * size;
+    canvas.className = 'after-convert'
+    pxMap.forEach(px => {
+      const {color, x, y} = px;
+      ctx.fillStyle = color;
+      ctx.fillRect(x*size, y*size, size, size)
+    })
+  }
+
+
+</script>
+</html>
